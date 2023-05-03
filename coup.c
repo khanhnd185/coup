@@ -1,24 +1,97 @@
 #include "coup.h"
 
-unsigned int gRoleActionMatrix[5][7] = {
-    // Tax  Assassinate  Exchange  Steal  BlockFA  BlockSteal  BlockAss  
-      {1,   0,           0,        0,     1,       0,          0},      // Duke
-      {0,   1,           0,        0,     0,       0,          0},      // Assassin
-      {0,   0,           1,        0,     0,       1,          0},      // Ambassador
-      {0,   0,           0,        1,     0,       1,          0},      // Captain
-      {0,   0,           0,        0,     0,       0,          1}       // Contessa
+unsigned char gActionRoleMatrix[enNumAction][enNumRole] = {
+    // Duke  Assa  Amba  Capt  Cont
+      {1,    0,    0,    0,    0}, // Tax
+      {0,    1,    0,    0,    0}, // Assassinate
+      {0,    0,    1,    0,    0}, // Exchange
+      {0,    0,    0,    1,    0}, // Steal
+      {1,    1,    1,    1,    1}, // Income
+      {1,    1,    1,    1,    1}, // Foreign Aid
+      {1,    1,    1,    1,    1}, // Coup
 };
 
+unsigned char gRoleCounterMatrix[enNumAction][enNumRole] = {
+    // Duke  Assa  Amba  Capt  Cont
+      {0,    0,    0,    0,    0}, // Tax
+      {0,    0,    0,    0,    1}, // Assassinate
+      {0,    0,    0,    0,    0}, // Exchange
+      {0,    0,    1,    1,    0}, // Steal
+      {0,    0,    0,    0,    0}, // Income
+      {1,    0,    0,    0,    0}, // Foreign Aid
+      {0,    0,    0,    0,    0}, // Coup
+};
 
+unsigned char gChallengeAction[enNumAction] = {
+      1, // Tax
+      1, // Assassinate
+      1, // Exchange
+      1, // Steal
+      0, // Income
+      1, // Foreign Aid
+      0, // Coup
+};
 
-int check_endgame(Host *phost)
+unsigned char gBlockAction[enNumAction] = {
+      0, // Tax
+      1, // Assassinate
+      0, // Exchange
+      1, // Steal
+      0, // Income
+      1, // Foreign Aid
+      0, // Coup
+};
+
+unsigned char gActionObject[enNumAction] = {
+      0, // Tax
+      1, // Assassinate
+      0, // Exchange
+      1, // Steal
+      0, // Income
+      0, // Foreign Aid
+      1, // Coup
+};
+
+unsigned char gActionSpendCoins[enNumAction] = {
+      0, // Tax
+      3, // Assassinate
+      0, // Exchange
+      0, // Steal
+      0, // Income
+      0, // Foreign Aid
+      7, // Coup
+};
+
+char *gActionString[enNumAction] = {
+      "Tax",
+      "Assassinate",
+      "Exchange",
+      "Steal",
+      "Income",
+      "Foreign Aid",
+      "Coup",
+};
+
+char *gRoleString[enNumRole] = {
+    "Duke",
+    "Assassin",
+    "Ambassador",
+    "Captain",
+    "Contessa",
+};
+
+char *gCounterString[enNumCounter] = {
+    "Ignore",
+    "Challenge",
+    "Block",
+};
+
+char check_endgame(Host *phost)
 {
-    Player* p;
     unsigned int live_flag = 0;
 
     for (int i = 0; i < 2; i++) {
-        p = &(phost->players[i]);
-        if (p->influences > 0) {
+        if (phost->players[i]->num_influences > 0) {
             live_flag += 1;
         }
     }
@@ -34,15 +107,57 @@ int check_endgame(Host *phost)
     return ERROR;
 }
 
+unsigned char is_player_truth(Player* player, Action action)
+{
+    unsigned char truth = 0;
+    for (unsigned char i = 0; i < player->num_influences; i++) {
+        truth += gActionRoleMatrix[action][player->influences[i]];
+    }
+    return truth;
+}
+
+unsigned char is_player_block_truth(Player* player, Role blocking_role)
+{
+    for (unsigned char i = 0; i < player->num_influences; i++) {
+        if (blocking_role == player->influences[i]) {
+            return TRUE;
+        }
+    }
+    return FALSE;
+}
+
+void remove_influence(Player* pplayer, unsigned int i) {
+    if (pplayer->num_influences < 1) {
+        return;
+    }
+
+    if (pplayer->num_influences == 1) {
+        pplayer->num_influences = 0;
+        return;
+    }
+
+    if (i > 1) {
+        i == 1;
+    }
+
+    pplayer->num_influences = 1;
+    if (i == 1) {
+        return;
+    }
+
+    pplayer->influences[0] = pplayer->influences[1];
+}
+
 void init_player(Player *pplayer)
 {
     return;
 }
 
-void init_host(Host *phost, unsigned int num_player, unsigned char *player_names)
+void init_host(Host *phost, unsigned char num_player, unsigned char *player_names)
 {
     return;
 }
 
-
-
+unsigned char player_lose_game(Player *player) {
+    return (unsigned char)(player->influences == 0);
+}
