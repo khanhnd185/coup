@@ -12,6 +12,7 @@ Counter ask_player_counter(Host *phost, unsigned char actor, Action action, unsi
 unsigned char ask_player_accept_challenge(Host *phost, unsigned char answerer, unsigned char challenger);
 unsigned char ask_player_object(Host *phost, unsigned char i, unsigned char action);
 unsigned char ask_player_remove(Host *phost, unsigned char i);
+unsigned char ask_player_reveal_role(Host *phost, unsigned char i);
 
 Role ask_player_block_by(Host *phost, unsigned char answerer, Action blocked_action);
 Counter ask_player_challenge(Host *phost, unsigned char object, unsigned char challenger);

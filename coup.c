@@ -107,26 +107,9 @@ char check_endgame(Host *phost)
     return ERROR;
 }
 
-unsigned char is_player_truth(Player* player, Action action)
-{
-    unsigned char truth = 0;
-    for (unsigned char i = 0; i < player->num_influences; i++) {
-        truth += gActionRoleMatrix[action][player->influences[i]];
-    }
-    return truth;
-}
+void remove_influence(Host *phost, unsigned char p, unsigned int i) {
+    Player* pplayer = phost->players[p];
 
-unsigned char is_player_block_truth(Player* player, Role blocking_role)
-{
-    for (unsigned char i = 0; i < player->num_influences; i++) {
-        if (blocking_role == player->influences[i]) {
-            return TRUE;
-        }
-    }
-    return FALSE;
-}
-
-void remove_influence(Player* pplayer, unsigned int i) {
     if (pplayer->num_influences < 1) {
         return;
     }

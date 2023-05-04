@@ -1,8 +1,19 @@
 #include <time.h>
+#include <stdio.h>
 #include <stdlib.h>
 
 #include "coup.h"
 #include "interface.h"
+
+void change_influence(Host *phost, unsigned char p, unsigned char index)
+{
+    char str[32];
+    sprintf(str, "change influence %s", gRoleString[phost->players[p]->influences[index]]);
+    notify_player_message(phost, p, str);
+    
+    srand(time(NULL));
+    phost->players[p]->influences[index] = rand() % enNumRole;
+}
 
 void exchange_influence(Host *phost, unsigned char answerer, Role role1, Role role2)
 {
@@ -31,7 +42,7 @@ void exchange_influence(Host *phost, unsigned char answerer, Role role1, Role ro
 
 void take_action(Host *phost, unsigned char subject, Action action, unsigned char object)
 {
-    unsigned char i, role1, role2;
+    unsigned char role1, role2;
 
     notify_player_take_action(phost, subject, action, object);
     switch (action) {
@@ -40,8 +51,7 @@ void take_action(Host *phost, unsigned char subject, Action action, unsigned cha
                 break;
             case enCoup:
             case enAssassinate:
-                i = ask_player_remove(phost, object);
-                remove_influence(phost->players[object], i);
+                remove_influence(phost, object, ask_player_remove(phost, object));
                 break;
             case enExchange:
                 srand(time(NULL));
@@ -69,8 +79,9 @@ void run(Host *phost)
     Player **players = phost->players;
     Action action;
     Counter counter = enPass;
-    unsigned char is_accept, j, k, l, m = 0, object = 0, i = 0;
+    unsigned char role_index, is_accept, j, k, l, m = 0, object = 0, i = 0;
     unsigned char cant_afford = TRUE;
+    unsigned char object_broke = FALSE;
 
     while (!check_endgame(phost)) {
         do {
@@ -78,21 +89,33 @@ void run(Host *phost)
                 break;
             }
 
-            while (cant_afford) {
-                action = ask_player_action(phost, i);
-                if (phost->players[i]->coins >= gActionSpendCoins[action]) {
-                    cant_afford = FALSE;
-                }
-                else {
-                    notify_player_message(phost, i, "Not enough money!");
-                }
-            }
-            phost->players[i]->coins = phost->players[i]->coins - gActionSpendCoins[action];
-            cant_afford = TRUE;
+            do {
+                object_broke = FALSE;
 
-            if (gActionObject[action]) {
-                object = ask_player_object(phost, i, action);
+                while (cant_afford) {
+                    action = ask_player_action(phost, i);
+                    if (phost->players[i]->coins >= gActionSpendCoins[action]) {
+                        cant_afford = FALSE;
+                    }
+                    else {
+                        notify_player_message(phost, i, "has not enough money!");
+                    }
+                }
+                phost->players[i]->coins = phost->players[i]->coins - gActionSpendCoins[action];
+                cant_afford = TRUE;
+
+                if (gActionObject[action]) {
+                    object = ask_player_object(phost, i, action);
+
+                    if ((action == enSteal) &&
+                        (phost->players[object]->coins < 2)) {
+                        object_broke = TRUE;
+                        notify_player_message(phost, object, "has not enough coins to be stealed!");
+                    }
+                }
+                
             }
+            while (object_broke); // [TODO] CHeck coin
 
             if ((gBlockAction[action] == FALSE) && (gChallengeAction[action] == FALSE)) {
                 take_action(phost, i, action, object);
@@ -120,13 +143,14 @@ void run(Host *phost)
                     break;
                 }
 
-                if (is_player_truth(phost->players[i], action)) {  // [TODO] Player choose lose!
-                    remove_influence(phost->players[j], ask_player_remove(phost, j));
-                    // [TODO] Player i has to change influence
+                role_index = ask_player_reveal_role(phost, i);
+                if (gActionRoleMatrix[action][phost->players[i]->influences[role_index]]) {
+                    remove_influence(phost, j, ask_player_remove(phost, j));
+                    change_influence(phost, i, role_index);
                     take_action(phost, i, action, object);
                 }
                 else {
-                    remove_influence(phost->players[i], ask_player_remove(phost, i));
+                    remove_influence(phost, i, ask_player_remove(phost, i));
                 }
                 
                 break;
@@ -153,12 +177,13 @@ void run(Host *phost)
                     break;
                 }
 
-                if (is_player_block_truth(phost->players[j], block_by_whom)) {  // [TODO] Player choose to lose!
-                    // [TODO] Player j has to change influence
-                    remove_influence(phost->players[m], ask_player_remove(phost, m));
+                role_index = ask_player_reveal_role(phost, j);
+                if (block_by_whom == phost->players[j]->influences[role_index]) {
+                    change_influence(phost, j, role_index);
+                    remove_influence(phost, m, ask_player_remove(phost, m));
                 }
                 else {
-                    remove_influence(phost->players[j], ask_player_remove(phost, j));
+                    remove_influence(phost, j, role_index);
                     take_action(phost, i, action, object);
                 }
             }

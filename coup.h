@@ -70,9 +70,7 @@ char check_endgame(Host *phost);
 void init_player(Player *pplayer);
 void init_host(Host *phost, unsigned char num_player, unsigned char *player_names);
 
-void remove_influence(Player* pplayer, unsigned int i);
+void remove_influence(Host *phost, unsigned char p, unsigned int i);
 unsigned char player_lose_game(Player *player);
-unsigned char is_player_truth(Player* player, Action action);
-unsigned char is_player_block_truth(Player* player, Role blocking_role);
 
 #endif /* COUP_H */

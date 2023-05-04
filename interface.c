@@ -71,6 +71,28 @@ unsigned char ask_player_object(Host *phost, unsigned char who_ask, unsigned cha
     return k;
 }
 
+unsigned char ask_player_reveal_role(Host *phost, unsigned char p)
+{
+    char str[8];
+    printf("[%s] choose influence to reveal: ", phost->players[p]->name);
+    for (unsigned char i = 0; i < phost->players[p]->num_influences; i++) {
+        printf("[%d:%s] ", i, gRoleString[phost->players[p]->influences[i]]);
+    }
+    printf(": ");
+
+    scanf("%[^\n]%*c", str);
+    unsigned char j = (unsigned char) atoi(str);
+
+    if (j >= phost->players[p]->num_influences) {
+        j = 0;
+    }
+
+    printf("[Log] Player %s reveal %s\n"
+            , phost->players[p]->name
+            , gRoleString[phost->players[p]->influences[j]]);
+    return j;
+}
+
 unsigned char ask_player_remove(Host *phost, unsigned char p)
 {
     char str[8];
@@ -95,7 +117,7 @@ unsigned char ask_player_remove(Host *phost, unsigned char p)
 
 void notify_player_message(Host *phost, unsigned char p, char *msg)
 {
-    printf("[Log] Player %s: %s\n", phost->players[p]->name, msg);
+    printf("[Log] Player %s %s\n", phost->players[p]->name, msg);
 }
 
 void notify_player_take_action(Host *phost, unsigned char subject, Action action, unsigned char object)
@@ -207,49 +229,31 @@ Counter ask_player_challenge(Host *phost, unsigned char object, unsigned char ch
     return j;
 }
 
-// Revise this function
 Role ask_player_block_by(Host *phost, unsigned char answerer, Action blocked_action)
 {
     char str[8];
-    printf("[%s] block %s by: ", phost->players[answerer]->name, gActionString[blocked_action]);
-    
-    if (blocked_action == enSteal) {
-        printf("[2:Ambassador] [3:Captain] : ");
-    }
-    else if (blocked_action == enForeignAid) {
-        printf("[0:Duke] : ");
-    }
-    else if (blocked_action == enAssassinate) {
-        printf("[4:Contessa] : ");
-    }
-    else {
-        printf("Something goes wrong : ");
-    }
+    unsigned char *role_lists = gRoleCounterMatrix[blocked_action];
+    unsigned char answer = 1;
 
-    scanf("%[^\n]%*c", str);
-    unsigned char j = (unsigned char) atoi(str);
+    do {        
+        printf("[%s] block %s by: ", phost->players[answerer]->name, gActionString[blocked_action]);
 
-    if (blocked_action == enSteal) {
-        if ((j != enAmbassador) && (j != enCaptain)) {
-            j = enAmbassador;
+        for (unsigned int i = 0; i < enNumRole; i++) {
+            if (role_lists[i]) {
+                printf("[%d:%s] ", i, gRoleString[i]);
+            }
         }
+
+        scanf("%[^\n]%*c", str);
+        answer = (unsigned char) atoi(str);
     }
-    else if (blocked_action == enForeignAid) {
-        j = enDuke;
-    }
-    else if (blocked_action == enAssassinate) {
-        j = enContessa;
-    }
-    else {
-        j = enAmbassador;
-    }
+    while (!role_lists[answer]);
 
     printf("[Log] Player %s block %s by %s\n"
             , phost->players[answerer]->name
             , gActionString[blocked_action]
-            , gRoleString[j]);
-    return j;
-
+            , gRoleString[answer]);
+    return answer;
 }
 
 
