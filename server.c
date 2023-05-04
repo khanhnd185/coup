@@ -33,10 +33,25 @@ void func(int connfd)
     }
 }
 
-int main()
+int main(int argc, char **argv)
 {
+    int aflag = 0;
+    int bflag = 0;
+    int *connfds;
+    int c, num_players;
     int sockfd, connfd, len;
+    unsigned int i = 0;
     struct sockaddr_in servaddr, cli;
+
+    while ((c = getopt (argc, argv, "n:")) != -1) {
+        switch (c) {
+            case 'n':
+                num_players = atoi(optarg);
+                break;
+            default:
+                abort ();
+        }
+    }
 
     sockfd = socket(AF_INET, SOCK_STREAM, 0);
     if (sockfd == -1) {
@@ -66,13 +81,18 @@ int main()
         printf("Server listening..\n");
     len = sizeof(cli);
 
-    connfd = accept(sockfd, (SA*)&cli, &len);
-    if (connfd < 0) {
-        printf("server accept failed...\n");
-        exit(0);
+    connfds = malloc(sizeof(int) * num_players);
+
+    while (i < num_players) {
+        connfds[i] = accept(sockfd, (SA*)&cli, &len);
+        if (connfd < 0) {
+            printf("server accept failed...\n");
+        }
+        else
+            printf("server accept the client...\n");
+            i++
     }
-    else
-        printf("server accept the client...\n");
+
 
     func(connfd);
 
