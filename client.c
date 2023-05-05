@@ -31,9 +31,9 @@ void func(int sockfd)
     }
 }
 
-int main()
+int connect_server(void)
 {
-    int sockfd, connfd;
+    int n, sockfd;
     struct sockaddr_in servaddr, cli;
 
     sockfd = socket(AF_INET, SOCK_STREAM, 0);
@@ -57,6 +57,33 @@ int main()
     else
         printf("connected to the server..\n");
 
-    func(sockfd);
+    return sockfd;
+}
+
+int main(int argc, char **argv)
+{
+    int n = 0;
+    int sockfd, c;
+    char buff[MAX];
+    char name[MAX];
+
+    while ((c = getopt (argc, argv, "n:")) != -1) {
+        switch (c) {
+            case 'n':
+                bzero(name, sizeof(name));
+                strcpy(name, optarg);
+                break;
+            default:
+                abort ();
+        }
+    }
+
+    sockfd = connect_server();
+
+    write(sockfd, name, sizeof(name));
+    while ((buff[n++] = getchar()) != '\n')
+        ;
+
+//    func(sockfd);
     close(sockfd);
 }
