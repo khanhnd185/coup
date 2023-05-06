@@ -10,6 +10,11 @@
 #define PORT 8080
 #define SA struct sockaddr
 
+#include "host.h"
+#include "interface.h"
+
+extern void introduce_players_name(Host *phost, char p);
+
 void func(int connfd)
 {
     char buff[MAX];
@@ -86,12 +91,21 @@ int* connect_players(int num_players)
     return connfds;
 }
 
-int main(int argc, char **argv)
+void free_all(Host* phost)
 {
-    int n = 0;
+    for (char i = 0; i < phost->num_players; i++) {
+        free(phost->players[i]);
+    }
+    free(phost->players);
+    free(phost->fds);
+    free(phost);
+}
+
+void main(int argc, char **argv)
+{
+    char n = 0;
     char buff[MAX];
-    int *connfds;
-    int i, c, num_players;
+    char i, c, num_players;
 
     while ((c = getopt (argc, argv, "n:")) != -1) {
         switch (c) {
@@ -103,18 +117,34 @@ int main(int argc, char **argv)
         }
     }
 
-    connfds = connect_players(num_players);
+    Player **players = malloc(sizeof(Player *) * num_players);
+    Host *phost = malloc(sizeof(Host));
 
-    for (i = 0; i < num_players; i++) {
-        bzero(buff, MAX);
-        read(connfds[i], buff, sizeof(buff));
-        printf("Name of player %d: %s\n", i, buff);
+    phost->num_players = num_players;
+    phost->players = players;
+    phost->fds = connect_players(num_players);
+
+    for (char i = 0; i < num_players; i++) {
+        players[i] = malloc(sizeof(Player));
+        players[i]->coins = 2;
+        players[i]->num_influences = 2;
+        players[i]->influences[0] = rand() % enNumRole;
+        players[i]->influences[1] = rand() % enNumRole;
+        ask_player_name(phost, i);
+
+        printf("Player %s [%s][%s]\n\n"
+                , players[i]->name
+                , gRoleString[players[i]->influences[0]]
+                , gRoleString[players[i]->influences[1]]);
     }
 
-    while ((buff[n++] = getchar()) != '\n')
-        ;
+    for (char i = 0; i < num_players; i ++) {
+        introduce_players_name(phost, i);
+    }
 
-//    func(connfd);
-    close(connfds[num_players]);
-    free(connfds);
+    run(phost);
+    notify_winner(phost);
+
+    close(phost->fds[num_players]);
+    free_all(phost);
 }

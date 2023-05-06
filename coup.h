@@ -33,25 +33,21 @@ typedef enum enCounter {
 } Counter;
 
 typedef struct {
-    unsigned char num_influences;
-    unsigned char name[16];
+    char num_influences;
+    char coins;
     Role influences[2];
-    unsigned char coins;
+    char name[10];
 } Player;
 
 typedef struct {
-    unsigned char from;
-    unsigned char *to;
+    char from;
+    char *to;
 } Int2Str;
 
 typedef struct {
-    Action action;
-    Player *whom;
-} FullAction;
-
-typedef struct {
     Player **players;
-    unsigned int num_players;
+    int *fds;
+    char num_players;
 } Host;
 
 extern unsigned char gBlockAction[enNumAction];
@@ -67,10 +63,7 @@ extern char *gCounterString[enNumCounter];
 
 
 char check_endgame(Host *phost);
-void init_player(Player *pplayer);
-void init_host(Host *phost, unsigned char num_player, unsigned char *player_names);
-
-void remove_influence(Host *phost, unsigned char p, unsigned int i);
-unsigned char player_lose_game(Player *player);
+char player_lose_game(Player *player);
+void remove_influence(Host *phost, char p, char i);
 
 #endif /* COUP_H */

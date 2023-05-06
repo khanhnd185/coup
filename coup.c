@@ -88,9 +88,9 @@ char *gCounterString[enNumCounter] = {
 
 char check_endgame(Host *phost)
 {
-    unsigned int live_flag = 0;
+    char live_flag = 0;
 
-    for (int i = 0; i < 2; i++) {
+    for (char i = 0; i < 2; i++) {
         if (phost->players[i]->num_influences > 0) {
             live_flag += 1;
         }
@@ -107,7 +107,7 @@ char check_endgame(Host *phost)
     return ERROR;
 }
 
-void remove_influence(Host *phost, unsigned char p, unsigned int i) {
+void remove_influence(Host *phost, char p, char i) {
     Player* pplayer = phost->players[p];
 
     if (pplayer->num_influences < 1) {
@@ -131,16 +131,6 @@ void remove_influence(Host *phost, unsigned char p, unsigned int i) {
     pplayer->influences[0] = pplayer->influences[1];
 }
 
-void init_player(Player *pplayer)
-{
-    return;
-}
-
-void init_host(Host *phost, unsigned char num_player, unsigned char *player_names)
-{
-    return;
-}
-
-unsigned char player_lose_game(Player *player) {
-    return (unsigned char)(player->influences == 0);
+char player_lose_game(Player *player) {
+    return (char)(player->influences == 0);
 }

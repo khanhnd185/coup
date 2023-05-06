@@ -2,30 +2,30 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-void ask_player_name(Host *phost, unsigned char i)
+void ask_player_name(Host *phost, char i)
 {
     printf("Input name of player %d: ", i+1);
     scanf("%[^\n]%*c", phost->players[i]->name);    
 }
 
-Action ask_player_action(Host *phost, unsigned char p)
+char ask_player_action(Host *phost, char p)
 {
     char str[8];
     Player *player = phost->players[p];
 
     printf("[%s] ", player->name);
-    for (unsigned char i = 0; i < player->num_influences; i++) {\
+    for (char i = 0; i < player->num_influences; i++) {\
         printf("[%s]", gRoleString[player->influences[i]]);
     }
     printf("[%d]: ", player->coins);
 
-    for (unsigned char i = 0; i < enNumAction; i++) {
+    for (char i = 0; i < enNumAction; i++) {
         printf("[%d:%s] ", i, gActionString[i]);
     }
     printf(": ");
 
     scanf("%[^\n]%*c", str);
-    unsigned char j = (unsigned char) atoi(str);
+    char j = (char) atoi(str);
 
     if (j >= enNumAction) {
         return enIncome;
@@ -35,14 +35,14 @@ Action ask_player_action(Host *phost, unsigned char p)
     return j;
 }
 
-unsigned char ask_player_object(Host *phost, unsigned char who_ask, unsigned char action)
+char ask_player_object(Host *phost, char who_ask, char action)
 {
     char str[8];
-    unsigned char default_player = who_ask;
-    unsigned char j;
+    char default_player = who_ask;
+    char j;
 
     printf("[%s] do %s with: ", phost->players[who_ask]->name, gActionString[action]);
-    for (unsigned char i  = (who_ask+1); i < (phost->num_players + who_ask); i++) {
+    for (char i  = (who_ask+1); i < (phost->num_players + who_ask); i++) {
         j = i % phost->num_players;
 
         if (phost->players[j]->num_influences == 0) {
@@ -58,7 +58,7 @@ unsigned char ask_player_object(Host *phost, unsigned char who_ask, unsigned cha
     printf(": ");
 
     scanf("%[^\n]%*c", str);
-    unsigned char k = (unsigned char) atoi(str);
+    char k = (char) atoi(str);
 
     if (k >= phost->num_players) {
         k = default_player;
@@ -71,17 +71,17 @@ unsigned char ask_player_object(Host *phost, unsigned char who_ask, unsigned cha
     return k;
 }
 
-unsigned char ask_player_reveal_role(Host *phost, unsigned char p)
+char ask_player_reveal(Host *phost, char p)
 {
     char str[8];
     printf("[%s] choose influence to reveal: ", phost->players[p]->name);
-    for (unsigned char i = 0; i < phost->players[p]->num_influences; i++) {
+    for (char i = 0; i < phost->players[p]->num_influences; i++) {
         printf("[%d:%s] ", i, gRoleString[phost->players[p]->influences[i]]);
     }
     printf(": ");
 
     scanf("%[^\n]%*c", str);
-    unsigned char j = (unsigned char) atoi(str);
+    char j = (char) atoi(str);
 
     if (j >= phost->players[p]->num_influences) {
         j = 0;
@@ -93,17 +93,17 @@ unsigned char ask_player_reveal_role(Host *phost, unsigned char p)
     return j;
 }
 
-unsigned char ask_player_remove(Host *phost, unsigned char p)
+char ask_player_remove(Host *phost, char p)
 {
     char str[8];
     printf("[%s] choose influence(s) to remove: ", phost->players[p]->name);
-    for (unsigned char i = 0; i < phost->players[p]->num_influences; i++) {
+    for (char i = 0; i < phost->players[p]->num_influences; i++) {
         printf("[%d:%s] ", i, gRoleString[phost->players[p]->influences[i]]);
     }
     printf(": ");
 
     scanf("%[^\n]%*c", str);
-    unsigned char j = (unsigned char) atoi(str);
+    char j = (char) atoi(str);
 
     if (j >= phost->players[p]->num_influences) {
         j = 0;
@@ -115,12 +115,12 @@ unsigned char ask_player_remove(Host *phost, unsigned char p)
     return j;
 }
 
-void notify_player_message(Host *phost, unsigned char p, char *msg)
+void notify_player_message(Host *phost, char p, char *msg)
 {
     printf("[Log] Player %s %s\n", phost->players[p]->name, msg);
 }
 
-void notify_player_take_action(Host *phost, unsigned char subject, Action action, unsigned char object)
+void notify_player_take_action(Host *phost, char subject, char action, char object)
 {
     printf("[Log] Player %s did %s "
             , phost->players[subject]->name
@@ -134,7 +134,7 @@ void notify_player_take_action(Host *phost, unsigned char subject, Action action
 }
 
 
-Counter ask_player_counter(Host *phost, unsigned char actor, Action action, unsigned char object, unsigned char counter)
+char ask_player_counter(Host *phost, char actor, char action, char object, char counter)
 {
     char str[8];
 
@@ -157,7 +157,7 @@ Counter ask_player_counter(Host *phost, unsigned char actor, Action action, unsi
     }
 
     scanf("%[^\n]%*c", str);
-    unsigned char j = (unsigned char) atoi(str);
+    char j = (char) atoi(str);
 
     if (j >= enNumCounter) {
         j = enPass;
@@ -177,14 +177,14 @@ Counter ask_player_counter(Host *phost, unsigned char actor, Action action, unsi
     return j;
 }
 
-unsigned char ask_player_accept_challenge(Host *phost, unsigned char answerer, unsigned char challenger)
+char ask_player_accept_challenge(Host *phost, char answerer, char challenger)
 {
     char str[8];
     printf("[%s] challenged by player %s : ", phost->players[answerer]->name, phost->players[challenger]->name);
     printf("[0:Refuse] [1:Accept] : ");
 
     scanf("%[^\n]%*c", str);
-    unsigned char j = (unsigned char) atoi(str);
+    char j = (char) atoi(str);
 
     if (j > 1) {
         j = 1;
@@ -199,7 +199,7 @@ unsigned char ask_player_accept_challenge(Host *phost, unsigned char answerer, u
 
 void notify_winner(Host *phost)
 {
-    for (unsigned char i = 0; i < phost->num_players; i++) {
+    for (char i = 0; i < phost->num_players; i++) {
         if (phost->players[i]->num_influences > 0) {
             printf("Winner is %s\n", phost->players[i]->name);
             return;
@@ -209,14 +209,14 @@ void notify_winner(Host *phost)
     printf("No one wins?\n");
 }
 
-Counter ask_player_challenge(Host *phost, unsigned char object, unsigned char challenger)
+char ask_player_challenge(Host *phost, char object, char challenger)
 {
     char str[8];
     printf("[%s] challenge or refuse %s : ", phost->players[challenger]->name, phost->players[object]->name);
     printf("[0:Refuse] [1:Challenge] : ");
 
     scanf("%[^\n]%*c", str);
-    unsigned char j = (unsigned char) atoi(str);
+    char j = (char) atoi(str);
 
     if (j > enChallenge) {
         j = enPass;
@@ -229,23 +229,23 @@ Counter ask_player_challenge(Host *phost, unsigned char object, unsigned char ch
     return j;
 }
 
-Role ask_player_block_by(Host *phost, unsigned char answerer, Action blocked_action)
+char ask_player_block_by(Host *phost, char answerer, char blocked_action)
 {
     char str[8];
-    unsigned char *role_lists = gRoleCounterMatrix[blocked_action];
-    unsigned char answer = 1;
+    char *role_lists = gRoleCounterMatrix[blocked_action];
+    char answer = 1;
 
     do {        
         printf("[%s] block %s by: ", phost->players[answerer]->name, gActionString[blocked_action]);
 
-        for (unsigned int i = 0; i < enNumRole; i++) {
+        for (char i = 0; i < enNumRole; i++) {
             if (role_lists[i]) {
                 printf("[%d:%s] ", i, gRoleString[i]);
             }
         }
 
         scanf("%[^\n]%*c", str);
-        answer = (unsigned char) atoi(str);
+        answer = (char) atoi(str);
     }
     while (!role_lists[answer]);
 
@@ -257,17 +257,17 @@ Role ask_player_block_by(Host *phost, unsigned char answerer, Action blocked_act
 }
 
 
-unsigned char ask_player_choose_role(Host *phost, unsigned char answerer, Role *roles, unsigned char num_roles)
+char ask_player_choose_role(Host *phost, char answerer, char *roles, char num_roles)
 {
     char str[8];
     printf("[%s] Choose: ", phost->players[answerer]->name);
 
-    for (unsigned char i = 0; i < num_roles; i++) {
+    for (char i = 0; i < num_roles; i++) {
         printf("[%d:%s] ", i, gRoleString[roles[i]]);
     }
 
     scanf("%[^\n]%*c", str);
-    unsigned char j = (unsigned char) atoi(str);
+    char j = (char) atoi(str);
 
     if (j >= num_roles) {
         j = 0;

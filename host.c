@@ -5,21 +5,21 @@
 #include "coup.h"
 #include "interface.h"
 
-void change_influence(Host *phost, unsigned char p, unsigned char index)
+void change_influence(Host *phost, char p, char index)
 {
     char str[32];
-    sprintf(str, "change influence %s", gRoleString[phost->players[p]->influences[index]]);
+    sprintf(str, "change %s", gRoleString[phost->players[p]->influences[index]]);
     notify_player_message(phost, p, str);
     
     srand(time(NULL));
     phost->players[p]->influences[index] = rand() % enNumRole;
 }
 
-void exchange_influence(Host *phost, unsigned char answerer, Role role1, Role role2)
+void exchange_influence(Host *phost, char answerer, char role1, char role2)
 {
-    unsigned char ret;
+    char ret;
     Player *player = phost->players[answerer];
-    Role roles[4];
+    char roles[4];
 
     roles[0] = role1;
     roles[1] = role2;
@@ -40,9 +40,9 @@ void exchange_influence(Host *phost, unsigned char answerer, Role role1, Role ro
 }
 
 
-void take_action(Host *phost, unsigned char subject, Action action, unsigned char object)
+void take_action(Host *phost, char subject, char action, char object)
 {
-    unsigned char role1, role2;
+    char role1, role2;
 
     notify_player_take_action(phost, subject, action, object);
     switch (action) {
@@ -77,11 +77,11 @@ void take_action(Host *phost, unsigned char subject, Action action, unsigned cha
 void run(Host *phost)
 {
     Player **players = phost->players;
-    Action action;
-    Counter counter = enPass;
-    unsigned char role_index, is_accept, j, k, l, m = 0, object = 0, i = 0;
-    unsigned char cant_afford = TRUE;
-    unsigned char object_broke = FALSE;
+    char action;
+    char counter = enPass;
+    char role_index, is_accept, j, k, l, m = 0, object = 0, i = 0;
+    char cant_afford = TRUE;
+    char object_broke = FALSE;
 
     while (!check_endgame(phost)) {
         do {
@@ -143,7 +143,7 @@ void run(Host *phost)
                     break;
                 }
 
-                role_index = ask_player_reveal_role(phost, i);
+                role_index = ask_player_reveal(phost, i);
                 if (gActionRoleMatrix[action][phost->players[i]->influences[role_index]]) {
                     remove_influence(phost, j, ask_player_remove(phost, j));
                     change_influence(phost, i, role_index);
@@ -157,7 +157,7 @@ void run(Host *phost)
             }
 
             if (counter == enBlock) {
-                Role block_by_whom = ask_player_block_by(phost, j, action);
+                char block_by_whom = ask_player_block_by(phost, j, action);
 
                 for (l  = (j+1); l < (phost->num_players + j); l++) {
                     m = (l % phost->num_players);
@@ -177,7 +177,7 @@ void run(Host *phost)
                     break;
                 }
 
-                role_index = ask_player_reveal_role(phost, j);
+                role_index = ask_player_reveal(phost, j);
                 if (block_by_whom == phost->players[j]->influences[role_index]) {
                     change_influence(phost, j, role_index);
                     remove_influence(phost, m, ask_player_remove(phost, m));

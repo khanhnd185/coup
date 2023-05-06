@@ -1,12 +1,8 @@
-#HOME = 
-#INCDIR = -I. -I$(HOME)/include
-#LIBDIR = -L. -L$(HOME)/lib-linux64
-#LIB = -lm
-#FLAG = -Wl,-rpath,$(HOME)/lib-linux64/
 CC = gcc
 OBJ = test.o coup.o interface.o host.o
-SVOBJ = server.o
-CLOBJ = client.o
+APPOBJ = app.o coup.o msg.o host.o
+SVOBJ = server.o coup.o msg.o host.o
+CLOBJ = client.o coup.o handler.o
 
 test: $(OBJ)
 	$(CC) $(INCDIR) $(LIBDIR) -o $(@) $(OBJ) $(LIB) $(FLAG) -g -O0
