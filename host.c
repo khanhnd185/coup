@@ -5,20 +5,69 @@
 #include "coup.h"
 #include "interface.h"
 
-void change_influence(Host *phost, char p, char index)
+static char check_endgame(Host *phost)
 {
-    char str[32];
-    sprintf(str, "change %s", gRoleString[phost->players[p]->influences[index]]);
-    notify_player_message(phost, p, str);
-    
-    srand(time(NULL));
-    phost->players[p]->influences[index] = rand() % enNumRole;
+    char num_alive_players = 0;
+
+    for (char i = 0; i < phost->num_players; i++) {
+        if (phost->players[i]->num_influences > 0) {
+            num_alive_players += 1;
+        }
+    }
+
+    if (num_alive_players > 1) {
+        return FALSE;
+    }
+
+    return TRUE;
 }
 
-void exchange_influence(Host *phost, char answerer, char role1, char role2)
+static char player_lose_game(Player *player) {
+    return (char)(player->num_influences == 0);
+}
+
+static void remove_influence(Host *phost, char p, char i)
+{
+    Player* pplayer = phost->players[p];
+
+    do {
+        if (pplayer->num_influences < 1) {
+            break;
+        }
+
+        if (pplayer->num_influences == 1) {
+            pplayer->num_influences = 0;
+            break;
+        }
+
+        if (i > 1) {
+            i == 1;
+        }
+
+        pplayer->num_influences = 1;
+        if (i == 1) {
+            break;
+        }
+
+        pplayer->influences[0] = pplayer->influences[1];
+    }
+    while (0);
+
+    broadcast_players_info(phost, p);
+}
+
+
+static void change_influence(Host *phost, char p, char i)
+{
+    srand(time(NULL));
+    phost->players[p]->influences[i] = rand() % enNumRole;
+    broadcast_players_info(phost, p);
+}
+
+static void exchange_influence(Host *phost, char p, char role1, char role2)
 {
     char ret;
-    Player *player = phost->players[answerer];
+    Player *player = phost->players[p];
     char roles[4];
 
     roles[0] = role1;
@@ -26,17 +75,19 @@ void exchange_influence(Host *phost, char answerer, char role1, char role2)
     roles[2] = player->influences[0];
 
     if (player->num_influences == 1) {
-        ret = ask_player_choose_role(phost, answerer, roles, 3);
+        ret = ask_player_choose_role(phost, p, roles, 3);
         player->influences[0] = roles[ret];
+        broadcast_players_info(phost, p);
         return;
     }
 
     roles[3] = player->influences[1];
-    ret = ask_player_choose_role(phost, answerer, roles, 4);
+    ret = ask_player_choose_role(phost, p, roles, 4);
     player->influences[0] = roles[ret];
     roles[ret] = roles[3];
-    ret = ask_player_choose_role(phost, answerer, roles, 3);
+    ret = ask_player_choose_role(phost, p, roles, 3);
     player->influences[1] = roles[ret];
+    broadcast_players_info(phost, p);
 }
 
 
@@ -48,27 +99,34 @@ void take_action(Host *phost, char subject, char action, char object)
     switch (action) {
             case enTax:
                 phost->players[subject]->coins += 3;
+                broadcast_players_info(phost, subject);
                 break;
             case enCoup:
             case enAssassinate:
                 remove_influence(phost, object, ask_player_remove(phost, object));
+                broadcast_players_info(phost, object);
                 break;
             case enExchange:
                 srand(time(NULL));
                 role1 = rand() % enNumRole;
                 role2 = rand() % enNumRole;
                 exchange_influence(phost, subject, role1, role2);
+                broadcast_players_info(phost, subject);
                 break;
             case enSteal:
                 phost->players[subject]->coins += 2;
                 phost->players[object]->coins -= 2;
+                broadcast_players_info(phost, subject);
+                broadcast_players_info(phost, object);
                 break;
             case enForeignAid:
                 phost->players[subject]->coins += 2;
+                broadcast_players_info(phost, subject);
                 break;
             case enIncome:
             default:
                 phost->players[subject]->coins += 1;
+                broadcast_players_info(phost, subject);
                 break;
     }
 }
@@ -102,6 +160,10 @@ void run(Host *phost)
                     }
                 }
                 phost->players[i]->coins = phost->players[i]->coins - gActionSpendCoins[action];
+                
+                if (gActionSpendCoins[action]) {
+                    broadcast_players_info(phost, i);
+                }
                 cant_afford = TRUE;
 
                 if (gActionObject[action]) {
@@ -117,13 +179,16 @@ void run(Host *phost)
             }
             while (object_broke); // [TODO] CHeck coin
 
-            if ((gBlockAction[action] == FALSE) && (gChallengeAction[action] == FALSE)) {
+            if (gChallengeAction[action] == FALSE) {
                 take_action(phost, i, action, object);
                 break;
             }
 
             for (k  = (i+1); k < (phost->num_players + i); k++) {
                 j = (k % phost->num_players);
+                if (player_lose_game(players[j])) {
+                    continue;
+                }
                 counter = ask_player_counter(phost, i, action, object, j);
 
                 if (counter != enPass) {
@@ -137,12 +202,6 @@ void run(Host *phost)
             }
 
             if (counter == enChallenge) {
-                is_accept = ask_player_accept_challenge(phost, i, j);
-
-                if (is_accept == FALSE) {
-                    break;
-                }
-
                 role_index = ask_player_reveal(phost, i);
                 if (gActionRoleMatrix[action][phost->players[i]->influences[role_index]]) {
                     remove_influence(phost, j, ask_player_remove(phost, j));
@@ -150,7 +209,7 @@ void run(Host *phost)
                     take_action(phost, i, action, object);
                 }
                 else {
-                    remove_influence(phost, i, ask_player_remove(phost, i));
+                    remove_influence(phost, i, role_index);
                 }
                 
                 break;
@@ -161,19 +220,15 @@ void run(Host *phost)
 
                 for (l  = (j+1); l < (phost->num_players + j); l++) {
                     m = (l % phost->num_players);
+                    if (player_lose_game(players[m])) {
+                        continue;
+                    }
                     if (ask_player_challenge(phost, j, m) == enChallenge) {
                         break;
                     }
                 }
 
                 if (l == phost->num_players + j) { // No one challenge                    
-                    break;
-                }
-
-                is_accept = ask_player_accept_challenge(phost, j, m);
-
-                if (is_accept == FALSE) {
-                    take_action(phost, i, action, object);
                     break;
                 }
 

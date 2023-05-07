@@ -61,9 +61,7 @@ extern char *gRoleString[enNumRole];
 extern char *gActionString[enNumAction];
 extern char *gCounterString[enNumCounter];
 
-
-char check_endgame(Host *phost);
-char player_lose_game(Player *player);
-void remove_influence(Host *phost, char p, char i);
+void print_player_public_info(Player *player);
+void print_player_private_info(Player *player);
 
 #endif /* COUP_H */

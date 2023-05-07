@@ -1,23 +1,17 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
 #include "handler.h"
 #include "msg.h"
-
-void print_player_info(Player *player)
-{
-    printf("[%s] ", player->name);
-    for (char i = 0; i < player->num_influences; i++) {
-        printf("[%s]", gRoleString[player->influences[i]]);
-    }
-    printf("[%d]: ", player->coins);
-}
 
 static char handle_ask_player_action(struct MsgChooseAction *msg, Player **players, char num_players, char p)
 {
     char str[8];
 
-    print_player_info(players[p]);
+    print_player_private_info(players[p]);
 
+    printf(": ");
     for (char i = 0; i < enNumAction; i++) {
         printf("[%d:%s] ", i, gActionString[i]);
     }
@@ -37,8 +31,8 @@ static char handle_ask_player_object(struct MsgChooseObject *msg, Player **playe
 {
     char j, str[8];
 
-    print_player_info(players[p]);
-    printf("do %s with: ", gActionString[msg->action]);
+    print_player_private_info(players[p]);
+    printf(": do %s with: ", gActionString[msg->action]);
     for (char i  = 0; i < msg->num_objects; i++) {
         j = msg->players[i];
         printf("[%d:%s] ", j, players[j]->name);
@@ -55,8 +49,8 @@ static char handle_ask_player_reveal(struct MsgRevealInfluence *msg, Player **pl
 {
     char str[8];
 
-    print_player_info(players[p]);
-    printf("choose influence to reveal: ");
+    print_player_private_info(players[p]);
+    printf(": choose influence to reveal: ");
     for (char i = 0; i < msg->num_influences; i++) {
         printf("[%d:%s] ", i, gRoleString[msg->influences[i]]);
     }
@@ -72,8 +66,8 @@ static char handle_ask_player_remove(struct MsgRemoveInfluence *msg, Player **pl
 {
     char str[8];
 
-    print_player_info(players[p]);
-    printf("choose influence to reveal: ");
+    print_player_private_info(players[p]);
+    printf(": choose influence to remove: ");
     for (char i = 0; i < msg->num_influences; i++) {
         printf("[%d:%s] ", i, gRoleString[msg->influences[i]]);
     }
@@ -89,8 +83,8 @@ static char handle_ask_player_counter(struct MsgChooseCounter *msg, Player **pla
 {
     char str[8];
 
-    print_player_info(players[p]);
-    printf("Player %s want to do %s "
+    print_player_private_info(players[p]);
+    printf(": Player %s want to do %s "
             , players[msg->subject]->name
             , gActionString[msg->action]);
 
@@ -117,8 +111,8 @@ static char handle_ask_player_accept_challenge(struct MsgAcceptChallenge *msg, P
 {
     char str[8];
 
-    print_player_info(players[p]);
-    printf("challenged by player %s : ", players[msg->challenger]->name);
+    print_player_private_info(players[p]);
+    printf(": challenged by player %s : ", players[msg->challenger]->name);
     printf("[0:Refuse] [1:Accept] : ");
 
     scanf("%[^\n]%*c", str);
@@ -131,8 +125,8 @@ static char handle_ask_player_challenge(struct MsgChallenge *msg, Player **playe
 {
     char str[8];
 
-    print_player_info(players[p]);
-    printf("challenge or refuse %s : ", players[msg->object]->name);
+    print_player_private_info(players[p]);
+    printf(": challenge or refuse %s : ", players[msg->object]->name);
     printf("[0:Refuse] [1:Challenge] : ");
 
     scanf("%[^\n]%*c", str);
@@ -146,8 +140,8 @@ static char handle_ask_player_block_by(struct MsgBlockByWhom *msg, Player **play
     char str[8];
     char *role_lists = gRoleCounterMatrix[msg->action];
 
-    print_player_info(players[p]);
-    printf("block %s by: ", gActionString[msg->action]);
+    print_player_private_info(players[p]);
+    printf(": block %s by: ", gActionString[msg->action]);
     for (char i = 0; i < msg->num_roles; i++) {
         printf("[%d:%s] ", msg->roles[i], gRoleString[msg->roles[i]]);
     }
@@ -161,8 +155,8 @@ static char handle_ask_player_block_by(struct MsgBlockByWhom *msg, Player **play
 static char handle_ask_player_choose_role(struct MsgChooseRole *msg, Player **players, char num_players, char p)
 {
     char str[8];
-    print_player_info(players[p]);
-    printf("Choose: ");
+    print_player_private_info(players[p]);
+    printf(": Choose: ");
 
     for (char i = 0; i < msg->num_roles; i++) {
         printf("[%d:%s] ", i, gRoleString[msg->roles[i]]);
@@ -174,17 +168,58 @@ static char handle_ask_player_choose_role(struct MsgChooseRole *msg, Player **pl
     return j;
 }
 
+static char handle_update_player_info(struct MsgName *msg, Player **players, char num_players, char p)
+{
+    char i = msg->number;
 
-char handle_message(char *m, Player **players, char num_players, char p)
+    players[i]->coins = msg->coins;
+    players[i]->num_influences = msg->numinf;
+    players[i]->influences[0] = msg->role[0];
+    players[i]->influences[1] = msg->role[1];
+
+    if (i == p) {
+        print_player_private_info(players[i]);
+        printf("\n");
+    }
+    else {
+        print_player_public_info(players[i]);
+        printf("\n");
+    }
+
+    return 0;
+}
+
+static char handle_notify_win(struct MsgWin *msg, Player **players, char num_players, char p)
+{
+    printf("Winner is %s\n.", players[msg->winner]->name);
+    return 0;
+}
+
+static char handle_msg_log(int sockfd)
+{
+    char str[80];
+    bzero(str, 80);
+
+    read(sockfd, str, 80);
+    printf("%s", str);
+
+    return 0;
+}
+
+char handle_message(int sockfd, char *m, Player **players, char num_players, char p)
 {
     char rep;
-    struct MsgWin *msg;
+
 
     switch (m[0]) {
+        case enName:
+            rep = handle_update_player_info((struct MsgName *) m, players, num_players, p);
+            break;
+        case enMsgLog:
+            rep = handle_msg_log(sockfd);
+            break;
         case enWin:
-            msg = (struct MsgWin *) m;
-            printf("Winner is %d\n.", msg->winner);
-            rep = 0;
+            rep = handle_notify_win((struct MsgWin *) m, players, num_players, p);
             break;
         case enChooseAction:
             rep = handle_ask_player_action((struct MsgChooseAction *) m, players, num_players, p);

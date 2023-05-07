@@ -1,3 +1,4 @@
+#include <stdio.h>
 #include "coup.h"
 
 unsigned char gActionRoleMatrix[enNumAction][enNumRole] = {
@@ -86,51 +87,21 @@ char *gCounterString[enNumCounter] = {
     "Block",
 };
 
-char check_endgame(Host *phost)
+void print_player_public_info(Player *player)
 {
-    char live_flag = 0;
-
-    for (char i = 0; i < 2; i++) {
-        if (phost->players[i]->num_influences > 0) {
-            live_flag += 1;
-        }
+    printf("[%s] ", player->name);
+    for (char i = 0; i < player->num_influences; i++) {
+        printf("[]");
     }
-
-    if (live_flag == 1) {
-        return TRUE;
-    }
-
-    if (live_flag > 1) {
-        return FALSE;
-    }
-
-    return ERROR;
+    printf("[%d]", player->coins);
 }
 
-void remove_influence(Host *phost, char p, char i) {
-    Player* pplayer = phost->players[p];
-
-    if (pplayer->num_influences < 1) {
-        return;
+void print_player_private_info(Player *player)
+{
+    printf("[%s] ", player->name);
+    for (char i = 0; i < player->num_influences; i++) {
+        printf("[%s]", gRoleString[player->influences[i]]);
     }
-
-    if (pplayer->num_influences == 1) {
-        pplayer->num_influences = 0;
-        return;
-    }
-
-    if (i > 1) {
-        i == 1;
-    }
-
-    pplayer->num_influences = 1;
-    if (i == 1) {
-        return;
-    }
-
-    pplayer->influences[0] = pplayer->influences[1];
+    printf("[%d]", player->coins);
 }
 
-char player_lose_game(Player *player) {
-    return (char)(player->influences == 0);
-}

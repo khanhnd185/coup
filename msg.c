@@ -21,9 +21,43 @@ void introduce_players_name(Host *phost, char p)
     }
 }
 
+void broadcast_log(Host *phost, char *str)
+{
+    struct MsgLog msg;
+
+    printf("%s", str);
+
+    bzero(&msg, 16);
+    msg.opcode = enMsgLog;
+
+    for (char j = 0; j < phost->num_players; j++) {
+        write(phost->fds[j], (char *)&msg, sizeof(struct MsgLog));
+        write(phost->fds[j], str, 80);
+    }
+}
+
+void broadcast_players_info(Host *phost, char i)
+{
+    struct MsgName msg;
+
+    print_player_private_info(phost->players[i]);
+    printf("\n");
+
+    bzero(&msg, 16);
+    msg.opcode = enName;
+    msg.role[0] = phost->players[i]->influences[0];
+    msg.role[1] = phost->players[i]->influences[1];
+    msg.number = i;
+    msg.coins = phost->players[i]->coins;
+    msg.numinf = phost->players[i]->num_influences;
+
+    for (char j = 0; j < phost->num_players; j++) {
+        write(phost->fds[j], (char *)&msg, sizeof(struct MsgName));
+    }
+}
+
 void ask_player_name(Host *phost, char i)
 {
-    char buff[16];
     struct MsgName msg;
     struct MsgName rep;
 
@@ -45,6 +79,7 @@ void ask_player_name(Host *phost, char i)
 
 char ask_player_action(Host *phost, char p)
 {
+    char str[80];
     char buff[16];
     struct MsgChooseAction msg;
     struct MsgReply rep;
@@ -60,12 +95,14 @@ char ask_player_action(Host *phost, char p)
         return enIncome;
     }
 
-    printf("[Log] Player %s want to do %s\n", phost->players[p]->name, gActionString[rep.reply]);
+    sprintf(str, "[Log] Player %s want to do %s\n", phost->players[p]->name, gActionString[rep.reply]);
+    broadcast_log(phost, str);
     return rep.reply;
 }
 
 char ask_player_object(Host *phost, char p, char action)
 {
+    char str[80];
     char default_player = p;
     char j, num_objects = 0;
     struct MsgChooseObject msg;
@@ -99,15 +136,17 @@ char ask_player_object(Host *phost, char p, char action)
         rep.reply = default_player;
     }
 
-    printf("[Log] Player %s want to do %s with %s\n"
+    sprintf(str, "[Log] Player %s want to do %s with %s\n"
             , phost->players[p]->name
             , gActionString[action]
             , phost->players[rep.reply]->name);
+    broadcast_log(phost, str);
     return rep.reply;
 }
 
 char ask_player_reveal(Host *phost, char p)
 {
+    char str[80];
     char num_objects = 0;
     struct MsgRevealInfluence msg;
     struct MsgReply rep;
@@ -126,14 +165,16 @@ char ask_player_reveal(Host *phost, char p)
         rep.reply = 0;
     }
 
-    printf("[Log] Player %s reveal %s\n"
+    sprintf(str, "[Log] Player %s reveal %s\n"
             , phost->players[p]->name
             , gRoleString[phost->players[p]->influences[rep.reply]]);
+    broadcast_log(phost, str);
     return rep.reply;
 }
 
 char ask_player_remove(Host *phost, char p)
 {
+    char str[80];
     char num_objects = 0;
     struct MsgRemoveInfluence msg;
     struct MsgReply rep;
@@ -152,33 +193,41 @@ char ask_player_remove(Host *phost, char p)
         rep.reply = 0;
     }
 
-    printf("[Log] Player %s remove %s\n"
+    sprintf(str, "[Log] Player %s remove %s\n"
             , phost->players[p]->name
             , gRoleString[phost->players[p]->influences[rep.reply]]);
+    broadcast_log(phost, str);
     return rep.reply;
 }
 
 void notify_player_message(Host *phost, char p, char *msg)
 {
-    printf("[Log] Player %s %s\n", phost->players[p]->name, msg);
+    char str[80];
+    sprintf(str, "[Log] Player %s %s\n", phost->players[p]->name, msg);
+    broadcast_log(phost, str);
 }
 
 void notify_player_take_action(Host *phost, char subject, char action, char object)
 {
-    printf("[Log] Player %s did %s "
-            , phost->players[subject]->name
-            , gActionString[action]);
+    char str[80];
     if (gActionObject[action]) {
-        printf("with player %s\n", phost->players[object]->name); 
+        sprintf(str, "[Log] Player %s did %s with player %s\n"
+                , phost->players[subject]->name
+                , gActionString[action]
+                , phost->players[object]->name);
     }
     else {
-        printf("\n");
+        sprintf(str, "[Log] Player %s did %s\n"
+                , phost->players[subject]->name
+                , gActionString[action]);
     }
+    broadcast_log(phost, str);
 }
 
 
 char ask_player_counter(Host *phost, char actor, char action, char object, char p)
 {
+    char str[80];
     struct MsgChooseCounter msg;
     struct MsgReply rep;
 
@@ -197,22 +246,28 @@ char ask_player_counter(Host *phost, char actor, char action, char object, char 
         rep.reply = enPass;
     }
 
-    printf("[Log] Player %s %s player %s doing %s "
-                , phost->players[p]->name
-                , gCounterString[rep.reply]
-                , phost->players[actor]->name
-                , gActionString[action]);
     if (gActionObject[action]) {
-        printf("with player %s\n", phost->players[object]->name); 
+        sprintf(str, "[Log] Player %s %s player %s doing %s with player %s\n"
+                    , phost->players[p]->name
+                    , gCounterString[rep.reply]
+                    , phost->players[actor]->name
+                    , gActionString[action]
+                    , phost->players[object]->name);
     }
     else {
-        printf("\n");
+        sprintf(str, "[Log] Player %s %s player %s doing %s\n"
+                    , phost->players[p]->name
+                    , gCounterString[rep.reply]
+                    , phost->players[actor]->name
+                    , gActionString[action]);
     }
+    broadcast_log(phost, str);
     return rep.reply;
 }
 
 char ask_player_accept_challenge(Host *phost, char p, char challenger)
 {
+    char str[80];
     struct MsgAcceptChallenge msg;
     struct MsgReply rep;
 
@@ -228,10 +283,11 @@ char ask_player_accept_challenge(Host *phost, char p, char challenger)
         rep.reply = 1;
     }
 
-    printf("[Log] Player %s %s player %s challenge\n"
+    sprintf(str, "[Log] Player %s %s player %s challenge\n"
                 , phost->players[p]->name
                 , (rep.reply == 0) ? "Refuse" : "Accept"
                 , phost->players[challenger]->name);
+    broadcast_log(phost, str);
     return rep.reply;    
 }
 
@@ -259,6 +315,7 @@ void notify_winner(Host *phost)
 
 char ask_player_challenge(Host *phost, char object, char p)
 {
+    char str[80];
     struct MsgChallenge msg;
     struct MsgReply rep;
 
@@ -275,15 +332,17 @@ char ask_player_challenge(Host *phost, char object, char p)
         rep.reply = enPass;
     }
 
-    printf("[Log] Player %s %s %s\n"
+    sprintf(str, "[Log] Player %s %s %s\n"
             , phost->players[p]->name
             , gCounterString[rep.reply]
             , phost->players[object]->name);
+    broadcast_log(phost, str);
     return rep.reply;
 }
 
 char ask_player_block_by(Host *phost, char p, char blocked_action)
 {
+    char str[80];
     struct MsgBlockByWhom msg;
     struct MsgReply rep;
 
@@ -312,23 +371,25 @@ char ask_player_block_by(Host *phost, char p, char blocked_action)
     }
     while (!role_lists[answer]);
 
-    printf("[Log] Player %s block %s by %s\n"
+    sprintf(str, "[Log] Player %s block %s by %s\n"
             , phost->players[p]->name
             , gActionString[blocked_action]
             , gRoleString[answer]);
+    broadcast_log(phost, str);
     return answer;
 }
 
 
 char ask_player_choose_role(Host *phost, char p, char *roles, char num_roles)
 {
+    char str[80];
     struct MsgChooseRole msg;
     struct MsgReply rep;
 
     bzero(&msg, 16);
     bzero(&rep, 16);
     msg.opcode = enChooseRole;
-    msg.opcode = num_roles;
+    msg.num_roles = num_roles;
 
     for (unsigned char i = 0; i < num_roles; i++) {
         msg.roles[i] = roles[i];
@@ -341,6 +402,5 @@ char ask_player_choose_role(Host *phost, char p, char *roles, char num_roles)
         rep.reply = 0;
     }
 
-    printf("[Log] Player %s choose %s\n", phost->players[p]->name, gRoleString[roles[rep.reply]]);
     return rep.reply;
 }

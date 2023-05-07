@@ -14,6 +14,7 @@ typedef enum enMessageType {
     enBlockByWhom,
     enChallengePlayer,
     enChooseRole,
+    enMsgLog,
     enNumMessage
 } MessageType;
 
@@ -22,6 +23,11 @@ struct MsgReply {
     char reply;
     char pad[4];
     char name[10];
+};
+
+struct MsgLog {
+    char opcode;
+    char name[15];
 };
 
 struct MsgName {

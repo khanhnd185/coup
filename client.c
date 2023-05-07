@@ -3,7 +3,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <strings.h>
 #include <sys/socket.h>
 #include <unistd.h>
 #define MAX 80
@@ -125,8 +124,8 @@ int main(int argc, char **argv)
         read(sockfd, (char *)&msg, 16);
         bzero(&rep, 16);
 
-        rep.reply = handle_message((char *) &msg, players, num_players, my_position);
-        if (msg.opcode != enWin) {
+        rep.reply = handle_message(sockfd, (char *) &msg, players, num_players, my_position);
+        if ((msg.opcode != enWin) && (msg.opcode != enName) && (msg.opcode != enMsgLog)) {
             write(sockfd, (char *)&rep, sizeof(struct MsgReply));
         }
     }
